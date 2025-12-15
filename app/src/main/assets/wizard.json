@@ -1,0 +1,25 @@
+[
+  {
+    "id": "sleep_hours",
+    "text": "How many hours did you sleep?",
+    "type": "NUMERIC",
+    "min": 0, "max": 12
+  },
+  {
+    "id": "stress_level",
+    "text": "Stress level (1-5)?",
+    "type": "NUMERIC",
+    "min": 1, "max": 5
+  },
+  {
+    "id": "hydration",
+    "text": "Did you drink enough water?",
+    "type": "BOOLEAN"
+  },
+  {
+    "id": "weather",
+    "text": "Weather condition",
+    "type": "SINGLE_CHOICE",
+    "options": ["Sunny", "Rainy", "Cloudy", "Stormy"]
+  }
+]
