@@ -1,6 +1,10 @@
 package com.ap0n.headache.data.local
 
-import androidx.room.*
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 @Dao
@@ -31,4 +35,19 @@ interface HeadacheDao {
 
     @Update
     suspend fun updateHeadache(headache: HeadacheEntity)
+
+    @Query("SELECT * FROM questions")
+    fun getAllQuestions(): Flow<List<QuestionEntity>>
+
+    @Query("SELECT COUNT(*) FROM questions")
+    suspend fun getQuestionCount(): Int
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuestion(question: QuestionEntity)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertQuestions(questions: List<QuestionEntity>)
+
+    @Query("DELETE FROM questions WHERE id = :id")
+    suspend fun deleteQuestion(id: String)
 }

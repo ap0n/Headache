@@ -7,12 +7,20 @@ import com.ap0n.headache.data.local.FactorEntity
 import com.ap0n.headache.data.local.HeadacheDao
 import com.ap0n.headache.data.local.toEntity
 import com.ap0n.headache.domain.analytics.AnalyticsCalculator
-import com.ap0n.headache.domain.model.*
+import com.ap0n.headache.domain.model.CorrelationResult
+import com.ap0n.headache.domain.model.HeadacheEntry
+import com.ap0n.headache.domain.model.QuestionType
+import com.ap0n.headache.domain.model.WizardQuestion
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 import javax.inject.Inject
@@ -39,8 +47,43 @@ class MainViewModel @Inject constructor(
     val headaches = dao.getAllHeadaches().map { list -> list.map { it.toDomain() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    // TODO: Delete this?
     private val _wizardQuestions = MutableStateFlow<List<WizardQuestion>>(emptyList())
-    val wizardQuestions = _wizardQuestions.asStateFlow()
+    val wizardQuestions = dao.getAllQuestions()
+        .map { list -> list.map { it.toDomain() } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    init {
+        initializeQuestions()
+    }
+
+    private fun initializeQuestions() {
+        viewModelScope.launch {
+            // Only seed from JSON if the DB is empty
+            if (dao.getQuestionCount() == 0) {
+                try {
+                    val json =
+                        context.assets.open("wizard.json").bufferedReader().use { it.readText() }
+                    val type = object : TypeToken<List<WizardQuestion>>() {}.type
+                    val defaultQuestions: List<WizardQuestion> = gson.fromJson(json, type)
+
+                    dao.insertQuestions(defaultQuestions.map { it.toEntity() })
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
+        }
+    }
+
+    fun saveQuestion(q: WizardQuestion) {
+        viewModelScope.launch {
+            dao.insertQuestion(q.toEntity())
+        }
+    }
+
+    fun deleteQuestion(id: String) {
+        viewModelScope.launch { dao.deleteQuestion(id) }
+    }
 
     private val _analyticsReport = MutableStateFlow<List<CorrelationResult>>(emptyList())
     val analyticsReport = _analyticsReport.asStateFlow()
@@ -160,9 +203,11 @@ class MainViewModel @Inject constructor(
 
     fun refreshAnalytics() {
         viewModelScope.launch {
-            val allHeadaches = dao.getAllHeadaches().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+            val allHeadaches =
+                dao.getAllHeadaches().firstOrNull()?.map { it.toDomain() } ?: emptyList()
             val allFactors = dao.getAllFactors().map { it.toDomain() }
-            _analyticsReport.value = analyticsCalculator.calculateCorrelations(allHeadaches, allFactors)
+            _analyticsReport.value =
+                analyticsCalculator.calculateCorrelations(allHeadaches, allFactors)
         }
     }
 

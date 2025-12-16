@@ -1,11 +1,14 @@
 package com.ap0n.headache.di
 
-import android.app.Application
 import android.content.Context
+import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
-import com.ap0n.headache.data.local.*
+import com.ap0n.headache.data.local.FactorEntity
+import com.ap0n.headache.data.local.HeadacheDao
+import com.ap0n.headache.data.local.HeadacheEntity
+import com.ap0n.headache.data.local.QuestionEntity
 import com.ap0n.headache.domain.model.QuestionType
 import com.google.gson.Gson
 import dagger.Module
@@ -65,8 +68,26 @@ object AppModule {
             val ts = System.currentTimeMillis() - (i * 86400000L) // Past days
 
             headaches.add(HeadacheEntity(id, ts, simulatedSeverity, 60, "Seeded"))
-            factors.add(FactorEntity(UUID.randomUUID().toString(), id, "sleep_hours", sleepHours.toString(), QuestionType.NUMERIC, ts))
-            factors.add(FactorEntity(UUID.randomUUID().toString(), id, "hydration", (random.nextBoolean()).toString(), QuestionType.BOOLEAN, ts))
+            factors.add(
+                FactorEntity(
+                    UUID.randomUUID().toString(),
+                    id,
+                    "sleep_hours",
+                    sleepHours.toString(),
+                    QuestionType.NUMERIC,
+                    ts
+                )
+            )
+            factors.add(
+                FactorEntity(
+                    UUID.randomUUID().toString(),
+                    id,
+                    "hydration",
+                    (random.nextBoolean()).toString(),
+                    QuestionType.BOOLEAN,
+                    ts
+                )
+            )
         }
         dao.insertHeadache(headaches.first()) // Trigger DB create
         headaches.forEach { dao.insertHeadache(it) }
@@ -74,7 +95,10 @@ object AppModule {
     }
 }
 
-@androidx.room.Database(entities = [HeadacheEntity::class, FactorEntity::class], version = 1)
+@Database(
+    entities = [HeadacheEntity::class, FactorEntity::class, QuestionEntity::class],
+    version = 1
+)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun headacheDao(): HeadacheDao
 }
