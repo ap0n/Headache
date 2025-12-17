@@ -154,13 +154,12 @@ fun HomeScreen(
                 }
             )
         }
-    ) {
+    ) { innerPadding ->
 
-        LazyColumn(contentPadding = PaddingValues(16.dp)) {
-            item {
-                Text("Headache Log", style = MaterialTheme.typography.headlineMedium)
-                Spacer(modifier = Modifier.height(16.dp))
-            }
+        LazyColumn(
+            modifier = Modifier.padding(innerPadding),
+            contentPadding = PaddingValues(16.dp)
+        ) {
             items(headaches) { h ->
                 Card(
                     onClick = { onHeadacheClick(h.id) },

@@ -111,12 +111,13 @@ class MainViewModel @Inject constructor(
         severity: Int,
         duration: Int,
         notes: String,
-        responses: Map<String, Any>
+        responses: Map<String, Any>,
+        timestamp: Long = System.currentTimeMillis()
     ) {
         viewModelScope.launch {
             val headacheEntry = HeadacheEntry(
                 id = UUID.randomUUID().toString(),
-                timestamp = System.currentTimeMillis(),
+                timestamp = timestamp,
                 severity = severity,
                 durationMinutes = duration,
                 notes = notes

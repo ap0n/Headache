@@ -1,18 +1,36 @@
 package com.ap0n.headache.ui
 
+import android.app.DatePickerDialog
+import android.app.TimePickerDialog
+import android.icu.util.Calendar
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.EditCalendar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.unit.dp
 import com.ap0n.headache.domain.model.HeadacheEntry
 import com.ap0n.headache.domain.model.QuestionType
 import com.ap0n.headache.domain.model.WizardQuestion
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -53,8 +71,14 @@ fun AddHeadacheScreen(
             initialHeadache = defaultHeadache,
             initialFactors = defaultAnswers,
             questions = questions,
-            onSave = { severity, notes, factors ->
-                viewModel.saveHeadache(severity, 60, notes, factors)
+            onSave = { timestamp, severity, notes, factors ->
+                viewModel.saveHeadache(
+                    severity = severity,
+                    duration = 60,
+                    notes = notes,
+                    responses = factors,
+                    timestamp = timestamp
+                )
                 onNavigateBack()
             },
             modifier = Modifier.padding(padding)
@@ -69,5 +93,60 @@ private fun getDefaultValue(q: WizardQuestion): Any {
         QuestionType.BOOLEAN -> false
         QuestionType.SINGLE_CHOICE -> q.options.firstOrNull() ?: ""
         QuestionType.TEXT -> ""
+    }
+}
+
+@Composable
+fun DateTimeRow(
+    timestamp: Long,
+    onTimestampSelected: (Long) -> Unit
+) {
+    val context = LocalContext.current
+    val calendar = Calendar.getInstance().apply { timeInMillis = timestamp }
+
+    val showPickers = {
+        DatePickerDialog(
+            context,
+            { _, year, month, day ->
+                TimePickerDialog(
+                    context,
+                    { _, hour, minute ->
+                        calendar.set(year, month, day, hour, minute)
+                        onTimestampSelected(calendar.timeInMillis)
+                    },
+                    calendar.get(Calendar.HOUR_OF_DAY),
+                    calendar.get(Calendar.MINUTE),
+                    true
+                ).show()
+            },
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
+        ).show()
+    }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { showPickers() }
+            .padding(vertical = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+
+    ) {
+        Column {
+            Text(
+                text = "Date & Time",
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = SimpleDateFormat("EEE, MMM dd • HH:mm", Locale.getDefault()).format(
+                    Date(timestamp)
+                ),
+                style = MaterialTheme.typography.titleMedium
+            )
+        }
+        Icon(Icons.Default.EditCalendar, contentDescription = "Change Time")
     }
 }
