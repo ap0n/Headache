@@ -160,7 +160,7 @@ fun FactorEditorDialog(
                             options = if (optionsText.isNotBlank()) optionsText.split(",")
                                 .map { it.trim() } else emptyList(),
                             min = if (type == QuestionType.NUMERIC) 0f else null,
-                            max = if (type == QuestionType.NUMERIC) 0f else null
+                            max = if (type == QuestionType.NUMERIC) 10f else null
                         )
                     )
                 },
