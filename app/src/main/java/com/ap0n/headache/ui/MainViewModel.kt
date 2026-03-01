@@ -18,7 +18,6 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -47,8 +46,6 @@ class MainViewModel @Inject constructor(
     val headaches = dao.getAllHeadaches().map { list -> list.map { it.toDomain() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
-    // TODO: Delete this?
-    private val _wizardQuestions = MutableStateFlow<List<WizardQuestion>>(emptyList())
     val wizardQuestions = dao.getAllQuestions()
         .map { list -> list.map { it.toDomain() } }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
@@ -92,20 +89,6 @@ class MainViewModel @Inject constructor(
     private val _editState = MutableStateFlow<EditState>(EditState.Loading)
     val editState = _editState.asStateFlow()
 
-    init {
-        loadWizard()
-    }
-
-    private fun loadWizard() {
-        try {
-            val json = context.assets.open("wizard.json").bufferedReader().use { it.readText() }
-            val type = object : TypeToken<List<WizardQuestion>>() {}.type
-            _wizardQuestions.value = gson.fromJson(json, type)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
     // --- 4. Logic for Creating New Entries ---
     fun saveHeadache(
         severity: Int,
@@ -125,7 +108,7 @@ class MainViewModel @Inject constructor(
             dao.insertHeadache(headacheEntry.toEntity())
 
             val factors = responses.mapNotNull { (questionId, ans) ->
-                val question = _wizardQuestions.value.find { it.id == questionId }
+                val question = wizardQuestions.value.find { it.id == questionId }
                 if (question != null) {
                     FactorEntity(
                         id = UUID.randomUUID().toString(),
@@ -177,7 +160,7 @@ class MainViewModel @Inject constructor(
             dao.deleteFactorsForHeadache(id)
 
             val newFactors = responses.mapNotNull { (key, value) ->
-                val q = _wizardQuestions.value.find { it.id == key }
+                val q = wizardQuestions.value.find { it.id == key }
                 if (q != null) {
                     FactorEntity(
                         id = UUID.randomUUID().toString(),
@@ -204,11 +187,22 @@ class MainViewModel @Inject constructor(
 
     fun refreshAnalytics() {
         viewModelScope.launch {
-            val allHeadaches =
-                dao.getAllHeadaches().firstOrNull()?.map { it.toDomain() } ?: emptyList()
+            // 1. Just grab the currently loaded data from your ViewModel's StateFlow!
+            // (If your StateFlow is named differently, like '_headaches', use that)
+            val allHeadaches = headaches.value
+
+            // 2. Do the same for factors if you have a StateFlow for them,
+            // OR if dao.getAllFactors() is a normal 'suspend' function, leave it as is:
             val allFactors = dao.getAllFactors().map { it.toDomain() }
-            _analyticsReport.value =
-                analyticsCalculator.calculateCorrelations(allHeadaches, allFactors)
+
+            // 3. Prevent the calculator from running if data is empty
+            // (which prevents divide-by-zero crashes)
+            if (allHeadaches.size >= 2) {
+                _analyticsReport.value =
+                    analyticsCalculator.calculateCorrelations(allHeadaches, allFactors)
+            } else {
+                _analyticsReport.value = emptyList() // Not enough data
+            }
         }
     }
 

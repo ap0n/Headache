@@ -13,6 +13,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -22,6 +23,13 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun ReportScreen(viewModel: MainViewModel) {
     val report by viewModel.analyticsReport.collectAsState()
+    val headaches by viewModel.headaches.collectAsState()
+
+    LaunchedEffect(headaches) {
+        if (headaches.isNotEmpty()) {
+            viewModel.refreshAnalytics()
+        }
+    }
 
     LazyColumn(contentPadding = PaddingValues(16.dp)) {
         item {
