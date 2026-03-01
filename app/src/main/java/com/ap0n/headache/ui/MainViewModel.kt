@@ -189,19 +189,27 @@ class MainViewModel @Inject constructor(
 
     fun refreshAnalytics() {
         viewModelScope.launch {
-            // 1. Just grab the currently loaded data from your ViewModel's StateFlow!
-            // (If your StateFlow is named differently, like '_headaches', use that)
             val allHeadaches = headaches.value
-
-            // 2. Do the same for factors if you have a StateFlow for them,
-            // OR if dao.getAllFactors() is a normal 'suspend' function, leave it as is:
             val allFactors = dao.getAllFactors().map { it.toDomain() }
 
-            // 3. Prevent the calculator from running if data is empty
-            // (which prevents divide-by-zero crashes)
             if (allHeadaches.size >= 2) {
-                _analyticsReport.value =
-                    analyticsCalculator.calculateCorrelations(allHeadaches, allFactors)
+                // 1. Calculate the raw results (which have the ugly UUIDs)
+                val rawResults = analyticsCalculator.calculateCorrelations(allHeadaches, allFactors)
+
+                // 2. Grab our current list of questions so we have the labels
+                val currentQuestions = wizardQuestions.value
+
+                // 3. Translate the IDs into human-readable text
+                val readableResults = rawResults.map { result ->
+                    // Find the question with the matching ID. If it was deleted, just fallback to the ID.
+                    val label = currentQuestions.find { it.id == result.factorKey }?.text
+                        ?: result.factorKey
+
+                    // Copy the result object, replacing the ugly ID with the clean label
+                    result.copy(factorKey = label)
+                }
+
+                _analyticsReport.value = readableResults
             } else {
                 _analyticsReport.value = emptyList() // Not enough data
             }
