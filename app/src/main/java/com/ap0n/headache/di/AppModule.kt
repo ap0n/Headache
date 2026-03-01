@@ -43,6 +43,7 @@ object AppModule {
                     }
                 }
             })
+            .fallbackToDestructiveMigration()
             .build()
     }
 
@@ -97,7 +98,7 @@ object AppModule {
 
 @Database(
     entities = [HeadacheEntity::class, FactorEntity::class, QuestionEntity::class],
-    version = 1
+    version = 2
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun headacheDao(): HeadacheDao
