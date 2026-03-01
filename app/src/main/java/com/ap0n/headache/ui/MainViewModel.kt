@@ -43,8 +43,10 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
 
     // --- 2. Existing Home/Analytics State ---
-    val headaches = dao.getAllHeadaches().map { list -> list.map { it.toDomain() } }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+    val headaches =
+        dao.getAllHeadaches()
+            .map { list -> list.map { it.toDomain() }.sortedByDescending { it.timestamp } }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     val wizardQuestions = dao.getAllQuestions()
         .map { list -> list.map { it.toDomain() } }
